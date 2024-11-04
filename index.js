@@ -2,7 +2,7 @@ var canvas;
 var gl;
 
 // position of the track
-var TRACK_LENGTH = 70; //staðsetning hvar bíll keyrir
+var TRACK_LENGTH = 100; //staðsetning hvar bíll keyrir
 // var TRACK_INNER = 20.0; //Þykktin
 // var TRACK_OUTER = 55.0; //stærðin
 var TRACK_PTS = 11; // punktar
@@ -10,6 +10,7 @@ var TRACK_PTS = 11; // punktar
 var BLUE = vec4(0.0, 0.0, 1.0, 1.0);
 var RED = vec4(1.0, 0.0, 0.0, 1.0);
 var GRAY = vec4(0.4, 0.4, 0.4, 1.0);
+var BROWN = vec4(0.5, 0.5, 0.5);
 
 var numCubeVertices  = 36;
 var numTrackVertices  = 2*TRACK_PTS;
@@ -17,7 +18,7 @@ var numTrackVertices  = 2*TRACK_PTS;
 
 // variables for moving car
 var carDirection = 0.0;
-var carXPos = 100.0;
+var logYPos = 0.0;
 var carYPos = 0.0;
 var height = 0.0;
 
@@ -165,6 +166,22 @@ function drawCar( mv ) {
     gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
 }
 
+function drawLogs( mv ) {
+
+    // set color to blue
+    gl.uniform4fv( colorLoc, BROWN );
+    
+    gl.bindBuffer( gl.ARRAY_BUFFER, cubeBuffer );
+    gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
+
+    // Draw a log
+    mv = mult(mv, scalem(5.0, 20.0, 1.0)); // Make logs long and thin
+    mv = mult(mv, translate(0.0, 0.0, 1.0)); // Position logs above the water surface
+
+    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
+    gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
+}
+
 function drawTrack( mv ) {
 
     // set color to GRAY
@@ -207,6 +224,11 @@ function render(){
     if (carYPos > TRACK_LENGTH ) {
         carYPos = -TRACK_LENGTH ; // Wrap around
     }
+
+    logYPos += 0.2; // Adjust speed as needed
+    if (logYPos > TRACK_LENGTH ) {
+        logYPos = -TRACK_LENGTH ; // Wrap around
+    }
     
     
     // drawCar()
@@ -225,5 +247,9 @@ function render(){
     
     // Draw the car
     drawCar(carMv);
+
+    // Position logs above the water surface
+    var logsMv = mult(mv, translate(-50.0, logYPos, 0.0)); // Adjust z-position to be above the water
+    drawLogs(logsMv);
     requestAnimFrame( render );
 }
