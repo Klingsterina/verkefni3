@@ -2,15 +2,13 @@ var canvas;
 var gl;
 
 // position of the track
-var TRACK_LENGTH = 100; //staðsetning hvar bíll keyrir
-// var TRACK_INNER = 20.0; //Þykktin
-// var TRACK_OUTER = 55.0; //stærðin
+var TRACK_LENGTH = 5; //staðsetning hvar bíll keyrir
 var TRACK_PTS = 11; // punktar
 
 var BLUE = vec4(0.0, 0.0, 1.0, 1.0);
-var RED = vec4(1.0, 0.0, 0.0, 1.0);
+var RED = vec4(1.0, 0.0, 1.0, 1.0);
 var GRAY = vec4(0.4, 0.4, 0.4, 1.0);
-var BROWN = vec4(0.5, 0.5, 0.5);
+var BROWN = vec4(0.8, 0.3, 0.0, 1,0);
 
 var numCubeVertices  = 36;
 var numTrackVertices  = 2*TRACK_PTS;
@@ -35,7 +33,16 @@ var trackBuffer;
 var vPosition;
 
 var cars = [];
-var numCars = 5;
+var logs = [];
+var numCars = 7;
+var numLogs = 10; // Set desired number of logs
+
+var waterMax = -70;
+var waterMin= -30;
+
+var trackMax = -20;
+var trackMin = 20;
+
 
 // the 36 vertices of the cube
 var cVertices = [
@@ -63,8 +70,7 @@ var cVertices = [
 var tVertices = [];
 
 
-window.onload = function init()
-{
+window.onload = function init(){
     canvas = document.getElementById( "gl-canvas" );
     
     gl = WebGLUtils.setupWebGL( canvas );
@@ -80,9 +86,7 @@ window.onload = function init()
     //
     var program = initShaders( gl, "vertex-shader", "fragment-shader" );
     gl.useProgram( program );
-    
-    // createTrack();
-    
+        
     // VBO for the track
     trackBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, trackBuffer);
@@ -114,72 +118,72 @@ window.onload = function init()
     window.addEventListener("keydown", function(e){
 
     });
-    // cars = generateCars(numCars);
+    cars = generateCars(numCars);
+    logs = generateLogs(numLogs); // Generate logs    
     render();
 }
-
-
-// // create the vertices that form the car track
-// function createTrack() {
-//     for (var i = 0; i <= TRACK_PTS; i++) {
-//         var x = i * (TRACK_LENGTH / TRACK_PTS) - (TRACK_LENGTH / 2); // Centered around the origin
-//         var p = vec3(x, 0.0, 0.0); // y and z are 0 for a line along x-axis
-//         tVertices.push(p);
-//     }
-// }
 
 function generateCars(count) {
     let newCars = [];
     for (let i = 0; i < count; i++) {
         newCars.push({
-            x: Math.random() * 2 - 1,  // x-staðsetning á bilinu -1 til 1
-            y: Math.random() * 0.8 + 0.1, // y-staðsetning á bilinu 0.1 til 0.9 (ofar á skjánum)
-            speed: (Math.random() * 0.01 + 0.009) * (Math.random() > 0.3 ? 1 : -1) // hraði, þar sem sumir fara til vinstri
+            x: Math.random() * (trackMax - trackMin) + trackMin, // Random x position within track
+            y: Math.random(), // Initialize y at the starting position
+            speed: Math.random() * 0.03 * (Math.random() > 0.3 ? 2 : -1) // speed for left/right movement
         });
     }
     return newCars;
 }
 
-
-// draw car as two blue cubes
-function drawCar( mv ) {
-
-    // set color to blue
-    gl.uniform4fv( colorLoc, RED );
-    
-    gl.bindBuffer( gl.ARRAY_BUFFER, cubeBuffer );
-    gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
-
-    var mv1 = mv;
-    // lower body of the car
-    mv = mult( mv, scalem( 3.0, 10.0, 2.0 ) );
-    mv = mult( mv, translate( 0.0, 0.0, 0.5 ) );
-
-    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
-    gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
-
-    // upper part of the car
-    mv1 = mult( mv1, scalem( 3.0, 4.0, 2.0 ) );
-    mv1 = mult( mv1, translate( -0.2, 0.0, 1.5 ) );
-
-    gl.uniformMatrix4fv(mvLoc, false, flatten(mv1));
-    gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
+function generateLogs(count) {
+    let newLogs = [];
+    for (let i = 0; i < count; i++) {
+        newLogs.push({
+            x: Math.random() * (waterMax - waterMin) + waterMin, // Random x position within water
+            y: TRACK_LENGTH, // Initialize y at the starting position
+            speed: Math.random() * 0.04 * (Math.random() > 0.3 ? 1 : -1) // speed for left/right movement
+        });
+    }
+    return newLogs;
 }
 
-function drawLogs( mv ) {
-
-    // set color to blue
-    gl.uniform4fv( colorLoc, BROWN );
+// draw car as two blue cubes
+function drawCar(mv, car) {
+    // set color to red (assuming you want to keep RED color)
+    gl.uniform4fv(colorLoc, RED);
     
-    gl.bindBuffer( gl.ARRAY_BUFFER, cubeBuffer );
-    gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeBuffer);
+    gl.vertexAttribPointer(vPosition, 3, gl.FLOAT, false, 0, 0);
 
-    // Draw a log
-    mv = mult(mv, scalem(5.0, 20.0, 1.0)); // Make logs long and thin
-    mv = mult(mv, translate(0.0, 0.0, 1.0)); // Position logs above the water surface
+    var mv1 = mv;
+
+    // lower body of the car
+    mv = mult(mv, scalem(3.0, 10.0, 2.0));
+    mv = mult(mv, translate(0.0, car.y, 0.5)); // Use car.y for vertical position
 
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
-    gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
+    gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
+
+    // upper part of the car
+    mv1 = mult(mv1, scalem(3.0, 10.0, 2.0));
+    mv1 = mult(mv1, translate(-0.2, car.y, 1.5)); // Use car.y for vertical position
+
+    gl.uniformMatrix4fv(mvLoc, false, flatten(mv1));
+    gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
+}
+
+function drawLog(mv, log) {
+    // set color to BROWN
+    gl.uniform4fv(colorLoc, BROWN);
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeBuffer);
+    gl.vertexAttribPointer(vPosition, 3, gl.FLOAT, false, 0, 0);
+
+    // Adjust matrix for each log based on its properties
+    mv = mult(mv, scalem(5.0, 20.0, 1.0)); // Adjust log size
+    mv = mult(mv, translate(0.0, log.y, 0)); // Apply x and y position
+    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
+    gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
 }
 
 function drawTrack( mv ) {
@@ -216,40 +220,49 @@ function drawWater( mv ) {
     gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
 }
     
+function render() {
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-function render(){
-    gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // Update positions of cars
+    cars.forEach(car => {
+        car.y += car.speed; // Update car position
 
-    carYPos += 0.5; // Adjust speed as needed
-    if (carYPos > TRACK_LENGTH ) {
-        carYPos = -TRACK_LENGTH ; // Wrap around
-    }
+        // Wrap around logic for car
+        if (car.y > TRACK_LENGTH) {
+            car.y = -TRACK_LENGTH; // Wrap around to the bottom
+        } else if (car.y < -TRACK_LENGTH) {
+            car.y = TRACK_LENGTH; // Wrap around to the top
+        }
+    });
 
-    logYPos += 0.2; // Adjust speed as needed
-    if (logYPos > TRACK_LENGTH ) {
-        logYPos = -TRACK_LENGTH ; // Wrap around
-    }
-    
-    
-    // drawCar()
+    // Update positions of logs
+    logs.forEach(log => {
+        log.y += log.speed; // Update car position
+
+        // Wrap around logic for car
+        if (log.y > TRACK_LENGTH) {
+            log.y = -TRACK_LENGTH; // Wrap around to the bottom
+        } else if (log.y < -TRACK_LENGTH) {
+            log.y = TRACK_LENGTH; // Wrap around to the top
+        }
+    });
+
     var mv = mat4();
-    // Distant and stationary viewpoint
     mv = lookAt(vec3(100.0, 0.0, 100.0 + height), vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0));
-
-    // Draw the track at its original position
     drawTrack(mv);
+    drawWater(mv);
 
-    var waterPos = mv;
-    drawWater(waterPos);
-    
-    // Create a new matrix for the car that includes its position
-    var carMv = mult(mv, translate(0.0, carYPos, 0.0));
-    
-    // Draw the car
-    drawCar(carMv);
+    // Draw each car
+    cars.forEach(car => {
+        var carMv = mult(mv, translate(car.x, car.y, 0.0)); // Use car.x for positioning
+        drawCar(carMv, car);
+    });
 
-    // Position logs above the water surface
-    var logsMv = mult(mv, translate(-50.0, logYPos, 0.0)); // Adjust z-position to be above the water
-    drawLogs(logsMv);
-    requestAnimFrame( render );
+    // Draw each log
+    logs.forEach(log => {
+        var logsMv = mult(mv, translate(log.x, log.y, 0.0)); // Position each log
+        drawLog(logsMv, log);
+    });
+
+    requestAnimFrame(render);
 }
