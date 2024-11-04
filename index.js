@@ -2,7 +2,7 @@ var canvas;
 var gl;
 
 // position of the track
-var TRACK_LENGTH = 5; //staðsetning hvar bíll keyrir
+var TRACK_LENGTH = 7; //staðsetning hvar bíll keyrir
 var TRACK_PTS = 11; // punktar
 
 var BLUE = vec4(0.0, 0.0, 1.0, 1.0);
@@ -42,6 +42,32 @@ var waterMin= -30;
 
 var trackMax = -20;
 var trackMin = 20;
+
+var initialLogPositions = [
+    { x: -85, y: TRACK_LENGTH }, // Log 1
+    { x: -80, y: TRACK_LENGTH }, // Log 1
+    { x: -75, y: TRACK_LENGTH }, // Log 1
+    { x: -70, y: TRACK_LENGTH }, // Log 1
+    { x: -65, y: TRACK_LENGTH }, // Log 2
+    { x: -60, y: TRACK_LENGTH }, // Log 3
+    { x: -55, y: TRACK_LENGTH }, // Log 4
+    { x: -50, y: TRACK_LENGTH }, // Log 5
+    { x: -45, y: TRACK_LENGTH }, // Log 6
+    { x: -40, y: TRACK_LENGTH }, // Log 7
+    { x: -35, y: TRACK_LENGTH }, // Log 8
+    // Add more logs as needed
+];
+
+var initialCarPositions = [
+    { x: -15, y: TRACK_LENGTH }, // Log 1
+    { x: -10, y: TRACK_LENGTH }, // Log 2
+    { x: -5, y: TRACK_LENGTH }, // Log 3
+    { x: -0, y: TRACK_LENGTH }, // Log 4
+    { x: 5, y: TRACK_LENGTH }, // Log 5
+    { x: 10, y: TRACK_LENGTH }, // Log 6
+    { x: 15, y: TRACK_LENGTH }, // Log 7
+    // Add more logs as needed
+];
 
 
 // the 36 vertices of the cube
@@ -118,8 +144,10 @@ window.onload = function init(){
     window.addEventListener("keydown", function(e){
 
     });
-    cars = generateCars(numCars);
-    logs = generateLogs(numLogs); // Generate logs    
+    cars = initialCarPositions.map(pos => ({ ...pos, speed: Math.random() * 0.04 * (Math.random() > 0.5 ? 1 : -1) })); // Add speed for logs
+    // cars = generateCars(numCars);
+    logs = initialLogPositions.map(pos => ({ ...pos, speed: Math.random()* 0.05 * (Math.random() > 0.5 ? 1 : -1) })); // Add speed for logs
+    // logs = generateLogs(numLogs); // Generate logs    
     render();
 }
 
@@ -128,8 +156,7 @@ function generateCars(count) {
     for (let i = 0; i < count; i++) {
         newCars.push({
             x: Math.random() * (trackMax - trackMin) + trackMin, // Random x position within track
-            y: Math.random(), // Initialize y at the starting position
-            speed: Math.random() * 0.03 * (Math.random() > 0.3 ? 2 : -1) // speed for left/right movement
+            y: Math.random() // Initialize y at the starting position
         });
     }
     return newCars;
@@ -140,12 +167,12 @@ function generateLogs(count) {
     for (let i = 0; i < count; i++) {
         newLogs.push({
             x: Math.random() * (waterMax - waterMin) + waterMin, // Random x position within water
-            y: TRACK_LENGTH, // Initialize y at the starting position
-            speed: Math.random() * 0.04 * (Math.random() > 0.3 ? 1 : -1) // speed for left/right movement
+            y: TRACK_LENGTH // Initialize y at the starting position
         });
     }
     return newLogs;
 }
+
 
 // draw car as two blue cubes
 function drawCar(mv, car) {
@@ -164,12 +191,11 @@ function drawCar(mv, car) {
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
     gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
 
-    // upper part of the car
-    mv1 = mult(mv1, scalem(3.0, 10.0, 2.0));
-    mv1 = mult(mv1, translate(-0.2, car.y, 1.5)); // Use car.y for vertical position
-
-    gl.uniformMatrix4fv(mvLoc, false, flatten(mv1));
-    gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
+    // // // upper part of the car
+    // mv1 = mult(mv1, scalem(3.0, 4.0, 2.0));
+    // mv1 = mult(mv1, translate(-0.2, car.y, 1.5)); // Use car.y for vertical positi
+    // gl.uniformMatrix4fv(mvLoc, false, flatten(mv1));
+    // gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
 }
 
 function drawLog(mv, log) {
@@ -180,7 +206,7 @@ function drawLog(mv, log) {
     gl.vertexAttribPointer(vPosition, 3, gl.FLOAT, false, 0, 0);
 
     // Adjust matrix for each log based on its properties
-    mv = mult(mv, scalem(5.0, 20.0, 1.0)); // Adjust log size
+    mv = mult(mv, scalem(4.0, 25.0, 2.0)); // Adjust log size
     mv = mult(mv, translate(0.0, log.y, 0)); // Apply x and y position
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
     gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
@@ -196,7 +222,7 @@ function drawTrack( mv ) {
 
     var mv = mv;
     // size of the track
-    mv = mult( mv, scalem( 50.0, 200, 0.1 ) );
+    mv = mult( mv, scalem( 40.0, 200, 0.1 ) );
     mv = mult( mv, translate( 0.0, 0.0, 0.0 ) );
 
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
@@ -213,7 +239,7 @@ function drawWater( mv ) {
 
     var mv = mv;
     // size of the track
-    mv = mult( mv, scalem( 50.0, 200, 0.1 ) );
+    mv = mult( mv, scalem( 60.0, 200, 0.1 ) );
     mv = mult( mv, translate( -1.0, 0.0, 0.0 ) );
 
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
@@ -225,9 +251,9 @@ function render() {
 
     // Update positions of cars
     cars.forEach(car => {
-        car.y += car.speed; // Update car position
+        car.y += car.speed; // Update log position
 
-        // Wrap around logic for car
+        // Wrap around logic for logs
         if (car.y > TRACK_LENGTH) {
             car.y = -TRACK_LENGTH; // Wrap around to the bottom
         } else if (car.y < -TRACK_LENGTH) {
@@ -237,9 +263,9 @@ function render() {
 
     // Update positions of logs
     logs.forEach(log => {
-        log.y += log.speed; // Update car position
+        log.y += log.speed; // Update log position
 
-        // Wrap around logic for car
+        // Wrap around logic for logs
         if (log.y > TRACK_LENGTH) {
             log.y = -TRACK_LENGTH; // Wrap around to the bottom
         } else if (log.y < -TRACK_LENGTH) {
@@ -248,7 +274,7 @@ function render() {
     });
 
     var mv = mat4();
-    mv = lookAt(vec3(100.0, 0.0, 100.0 + height), vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0));
+    mv = lookAt(vec3(80.0, 0.0, 100.0 + height), vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0));
     drawTrack(mv);
     drawWater(mv);
 
