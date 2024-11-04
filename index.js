@@ -13,6 +13,14 @@ var BROWN = vec4(0.8, 0.3, 0.0, 1,0);
 var numCubeVertices  = 36;
 var numTrackVertices  = 2*TRACK_PTS;
 
+var movement = false;     // Do we rotate?
+var spinX = 0;
+var spinY = 0;
+var origX;
+var origY;
+
+var zDist = 100.0;
+var at = vec3(0.0, 0.0, 0.0);
 
 // variables for moving car
 var carDirection = 0.0;
@@ -43,18 +51,33 @@ var waterMin= -30;
 var trackMax = -20;
 var trackMin = 20;
 
+var frogPos = { x: 25, y: 0 }; // Initial frog position
+var frogAlive = true; // Is the frog alive?
+var fly = { active: true, x: 2, y: 0 }; // Example fly position
+
 var initialLogPositions = [
     { x: -85, y: TRACK_LENGTH }, // Log 1
-    { x: -80, y: TRACK_LENGTH }, // Log 1
-    { x: -75, y: TRACK_LENGTH }, // Log 1
-    { x: -70, y: TRACK_LENGTH }, // Log 1
-    { x: -65, y: TRACK_LENGTH }, // Log 2
-    { x: -60, y: TRACK_LENGTH }, // Log 3
-    { x: -55, y: TRACK_LENGTH }, // Log 4
-    { x: -50, y: TRACK_LENGTH }, // Log 5
-    { x: -45, y: TRACK_LENGTH }, // Log 6
-    { x: -40, y: TRACK_LENGTH }, // Log 7
-    { x: -35, y: TRACK_LENGTH }, // Log 8
+    { x: -85, y: TRACK_LENGTH - 3 }, // log 1.5
+    { x: -80, y: TRACK_LENGTH }, // Log 2
+    { x: -80, y: TRACK_LENGTH -4 }, // Log 2.5
+    { x: -75, y: TRACK_LENGTH }, // Log 3
+    { x: -75, y: TRACK_LENGTH -3}, // Log 3.5
+    { x: -70, y: TRACK_LENGTH }, // Log 4
+    { x: -70, y: TRACK_LENGTH - 4}, // Log 4
+    { x: -65, y: TRACK_LENGTH }, // Log 5
+    { x: -65, y: TRACK_LENGTH -3 }, // Log 5.5
+    { x: -60, y: TRACK_LENGTH }, // Log 6
+    { x: -60, y: TRACK_LENGTH -4 }, // Log 6.5
+    { x: -55, y: TRACK_LENGTH }, // Log 7
+    { x: -55, y: TRACK_LENGTH -3}, // Log 7.5
+    { x: -50, y: TRACK_LENGTH }, // Log 8
+    { x: -50, y: TRACK_LENGTH -4}, // Log 8.5
+    { x: -45, y: TRACK_LENGTH }, // Log 9
+    { x: -45, y: TRACK_LENGTH -3}, // Log 9.5
+    { x: -40, y: TRACK_LENGTH }, // Log 10
+    { x: -40, y: TRACK_LENGTH -4}, // Log 10.5
+    { x: -35, y: TRACK_LENGTH }, // Log 11
+    { x: -35, y: TRACK_LENGTH -3}, // Log 11.5
     // Add more logs as needed
 ];
 
@@ -140,13 +163,38 @@ window.onload = function init(){
     document.getElementById("Viewpoint").innerHTML = "1: Fjarlægt sjónarhorn";
     document.getElementById("Height").innerHTML = "Viðbótarhæð: "+ height;
 
-    // Event listener for keyboard
-    window.addEventListener("keydown", function(e){
+    //event listeners for mouse
+    canvas.addEventListener("mousedown", function(e){
+        movement = true;
+        origX = e.clientX;
+        origY = e.clientY;
+        e.preventDefault();         // Disable drag and drop
+    } );
 
+    canvas.addEventListener("mouseup", function(e){
+        movement = false;
+    } );
+
+    canvas.addEventListener("mousemove", function(e) {
+        if (movement) {
+            const rotationSpeed = 0.1; // Adjust this value to control rotation speed (lower is slower)
+            spinX = (spinX + (e.clientX - origX) * rotationSpeed) % 360;
+            spinY = (spinY + (origY - e.clientY) * rotationSpeed) % 360;
+            origY = e.clientY;
+            origX = e.clientX;
+        }
     });
-    cars = initialCarPositions.map(pos => ({ ...pos, speed: Math.random() * 0.04 * (Math.random() > 0.5 ? 1 : -1) })); // Add speed for logs
+    cars = initialCarPositions.map(pos => ({ ...pos, speed: Math.random() * 0.05 * (Math.random() > 0.5 ? 1 : -1) })); // Add speed for logs
+    logs = initialLogPositions.map((pos, index) => {
+        // Set speed based on the index: every even index will have a different speed
+        const speedFactor = index % 2 === 0 ? 0.03 : 0.02; // Hraði fyrir odda/ slétta loga
+        return { 
+            ...pos, 
+            speed: Math.random() * speedFactor * (Math.random() > 0.5 ? 1 : -1) 
+        }; 
+    });
     // cars = generateCars(numCars);
-    logs = initialLogPositions.map(pos => ({ ...pos, speed: Math.random()* 0.05 * (Math.random() > 0.5 ? 1 : -1) })); // Add speed for logs
+    // logs = initialLogPositions.map(pos => ({ ...pos, speed: Math.random()* 0.01 * (Math.random() > 0.5 ? 1 : -1) })); // Add speed for logs
     // logs = generateLogs(numLogs); // Generate logs    
     render();
 }
@@ -185,7 +233,7 @@ function drawCar(mv, car) {
     var mv1 = mv;
 
     // lower body of the car
-    mv = mult(mv, scalem(3.0, 10.0, 2.0));
+    mv = mult(mv, scalem(3.0, 10.0, 4.0));
     mv = mult(mv, translate(0.0, car.y, 0.5)); // Use car.y for vertical position
 
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
@@ -197,6 +245,20 @@ function drawCar(mv, car) {
     // gl.uniformMatrix4fv(mvLoc, false, flatten(mv1));
     // gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
 }
+
+function drawFrog(mv, frogPos) {
+    gl.uniform4fv(colorLoc, vec4(0.0, 1.0, 0.0, 1.0)); // Frog color
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, cubeBuffer);
+    gl.vertexAttribPointer(vPosition, 3, gl.FLOAT, false, 0, 0);
+
+    mv = mult(mv, scalem(1.0, 1.0, 1.0)); // Adjust size as needed
+    mv = mult(mv, translate(frogPos.x, frogPos.y, 0.0)); // Position the frog
+
+    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
+    gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
+}
+
 
 function drawLog(mv, log) {
     // set color to BROWN
@@ -245,6 +307,43 @@ function drawWater( mv ) {
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
     gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
 }
+
+function checkForCollision() {
+    // Check collision with the fly
+    if (fly.active && Math.abs(frogPos.x - fly.x) < 0.5 && Math.abs(frogPos.y - fly.y) < 0.5) {
+        // Frog has eaten the fly
+        fly.active = false; // Set fly to inactive
+        // You can implement score increment or other effects here
+        console.log("Fly eaten!");
+    }
+
+    // Check collision with cars
+    for (let car of cars) {
+        if (Math.abs(frogPos.x - car.x) < 0.5 && Math.abs(frogPos.y - car.y) < 0.5) {
+            // Frog has collided with a car
+            frogAlive = false; // Set frog as not alive
+            console.log("Frog hit by car! Game Over!");
+            return; // Exit the function as the frog is dead
+        }
+    }
+
+    // Check collision with logs
+    let onLog = false; // Track if frog is on a log
+    for (let log of logs) {
+        if (Math.abs(frogPos.x - log.x) < 0.5 && Math.abs(frogPos.y - log.y) < 0.5) {
+            // Frog is on a log, mark as onLog
+            onLog = true;
+            break; // No need to check other logs
+        }
+    }
+
+    // If the frog is not on a log and is alive, it will "drown"
+    if (!onLog && frogAlive) {
+        frogAlive = false; // Set frog as not alive
+        console.log("Frog drowned! Game Over!");
+    }
+}
+
     
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -273,10 +372,17 @@ function render() {
         }
     });
 
+    checkForCollision();
+
+    var up = vec3(0.0, 0.0, 1.0);
     var mv = mat4();
-    mv = lookAt(vec3(80.0, 0.0, 100.0 + height), vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0));
+    //mv = lookAt(vec3(80.0, 0.0, 100.0 + height), vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0));
+    mv = lookAt( vec3(80.0, 0.0, 100 + height), at, up );
+    mv = mult( mv, rotateY( spinY ) );
+    mv = mult( mv, rotateX( spinX ) );
     drawTrack(mv);
     drawWater(mv);
+    drawFrog(mv, frogPos);
 
     // Draw each car
     cars.forEach(car => {
