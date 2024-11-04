@@ -51,7 +51,7 @@ var waterMin= -30;
 var trackMax = -20;
 var trackMin = 20;
 
-var frogPos = { x: 25, y: 0 }; // Initial frog position
+var frogPos = { x: 0, y: 0 }; // Initial frog position
 var frogAlive = true; // Is the frog alive?
 var fly = { active: true, x: 2, y: 0 }; // Example fly position
 
@@ -184,7 +184,7 @@ window.onload = function init(){
             origX = e.clientX;
         }
     });
-    cars = initialCarPositions.map(pos => ({ ...pos, speed: Math.random() * 0.05 * (Math.random() > 0.5 ? 1 : -1) })); // Add speed for logs
+    cars = initialCarPositions.map(pos => ({ ...pos, speed: Math.random() * 0.5 * (Math.random() > 0.5 ? 1 : -1) })); // Add speed for logs
     logs = initialLogPositions.map((pos, index) => {
         // Set speed based on the index: every even index will have a different speed
         const speedFactor = index % 2 === 0 ? 0.03 : 0.02; // Hraði fyrir odda/ slétta loga
@@ -252,7 +252,8 @@ function drawFrog(mv, frogPos) {
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeBuffer);
     gl.vertexAttribPointer(vPosition, 3, gl.FLOAT, false, 0, 0);
 
-    mv = mult(mv, scalem(1.0, 1.0, 1.0)); // Adjust size as needed
+    mv = mult(mv, scalem(2.0, 2.0, 2.0)); // Adjust size as needed
+    mv = mult(mv, translate(0.0, 0.0, 1.0));
     mv = mult(mv, translate(frogPos.x, frogPos.y, 0.0)); // Position the frog
 
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
@@ -308,41 +309,43 @@ function drawWater( mv ) {
     gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
 }
 
-function checkForCollision() {
-    // Check collision with the fly
-    if (fly.active && Math.abs(frogPos.x - fly.x) < 0.5 && Math.abs(frogPos.y - fly.y) < 0.5) {
-        // Frog has eaten the fly
-        fly.active = false; // Set fly to inactive
-        // You can implement score increment or other effects here
-        console.log("Fly eaten!");
+    function newGame() {
+        frogPos = { x: 15, y: 0 };
     }
 
+function checkForCollision() {
     // Check collision with cars
     for (let car of cars) {
-        if (Math.abs(frogPos.x - car.x) < 0.5 && Math.abs(frogPos.y - car.y) < 0.5) {
-            // Frog has collided with a car
+        if (Math.abs(frogPos.x - car.x) < 2.5 && Math.abs(frogPos.y - car.y) < 0.5) { // Adjusted thresholds
             frogAlive = false; // Set frog as not alive
             console.log("Frog hit by car! Game Over!");
+            newGame();
             return; // Exit the function as the frog is dead
         }
     }
 
-    // Check collision with logs
-    let onLog = false; // Track if frog is on a log
+    // Check if the frog is on a log
+    let onLog = false; // Track if the frog is on a log
     for (let log of logs) {
-        if (Math.abs(frogPos.x - log.x) < 0.5 && Math.abs(frogPos.y - log.y) < 0.5) {
-            // Frog is on a log, mark as onLog
-            onLog = true;
+        // Adjusted thresholds for logs
+        if (Math.abs(frogPos.x - log.x) < 4.0 && Math.abs(frogPos.y - log.y) < 1.0) {
+            onLog = true; // Frog is on a log
             break; // No need to check other logs
         }
     }
 
-    // If the frog is not on a log and is alive, it will "drown"
-    if (!onLog && frogAlive) {
+    // Check if the frog is in the water boundaries
+    if (frogPos.y < waterMax && frogPos.y > waterMin) {
         frogAlive = false; // Set frog as not alive
         console.log("Frog drowned! Game Over!");
+    } else if (onLog) {
+        console.log("Frog is safe on the log!");
+    } else {
+        // console.log("Frog is alive but not on a log.");
     }
 }
+
+
 
     
 function render() {
@@ -398,3 +401,13 @@ function render() {
 
     requestAnimFrame(render);
 }
+
+
+// GEYMA
+// Check collision with the fly
+// if (fly.active && Math.abs(frogPos.x - fly.x) < 0.5 && Math.abs(frogPos.y - fly.y) < 0.5) {
+//     // Frog has eaten the fly
+//     fly.active = false; // Set fly to inactive
+//     // You can implement score increment or other effects here
+//     console.log("Fly eaten!");
+// }
