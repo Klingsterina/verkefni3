@@ -2,7 +2,7 @@ var canvas;
 var gl;
 
 // position of the track
-var TRACK_LENGTH = 130; //staðsetning hvar bíll keyrir
+var TRACK_LENGTH = 70; //staðsetning hvar bíll keyrir
 // var TRACK_INNER = 20.0; //Þykktin
 // var TRACK_OUTER = 55.0; //stærðin
 var TRACK_PTS = 11; // punktar
@@ -80,12 +80,12 @@ window.onload = function init()
     var program = initShaders( gl, "vertex-shader", "fragment-shader" );
     gl.useProgram( program );
     
-    createTrack();
+    // createTrack();
     
     // VBO for the track
     trackBuffer = gl.createBuffer();
-    gl.bindBuffer( gl.ARRAY_BUFFER, trackBuffer );
-    gl.bufferData( gl.ARRAY_BUFFER, flatten(tVertices), gl.STATIC_DRAW );
+    gl.bindBuffer(gl.ARRAY_BUFFER, trackBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(tVertices), gl.STATIC_DRAW);
 
     // VBO for the cube
     cubeBuffer = gl.createBuffer();
@@ -113,60 +113,19 @@ window.onload = function init()
     window.addEventListener("keydown", function(e){
 
     });
-    cars = generateCars(numCars);
+    // cars = generateCars(numCars);
     render();
 }
 
 
-// create the vertices that form the car track
-function createTrack() {
-    for (var i = 0; i <= TRACK_PTS; i++) {
-        var x = i * (TRACK_LENGTH / TRACK_PTS) - (TRACK_LENGTH / 2); // Centered around the origin
-        var p = vec3(x, 0.0, 0.0); // y and z are 0 for a line along x-axis
-        tVertices.push(p);
-    }
-}
-
-
-// // draw a house in location (x, y) of size size
-// function house( x, y, size, mv ) {
-
-//     gl.uniform4fv( colorLoc, RED );
-    
-//     mv = mult( mv, translate( x, y, size/2 ) );
-//     mv = mult( mv, scalem( size, size, size ) );
-
-//     gl.bindBuffer( gl.ARRAY_BUFFER, cubeBuffer );
-//     gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
-
-//     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
-//     gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
+// // create the vertices that form the car track
+// function createTrack() {
+//     for (var i = 0; i <= TRACK_PTS; i++) {
+//         var x = i * (TRACK_LENGTH / TRACK_PTS) - (TRACK_LENGTH / 2); // Centered around the origin
+//         var p = vec3(x, 0.0, 0.0); // y and z are 0 for a line along x-axis
+//         tVertices.push(p);
+//     }
 // }
-    
-
-// draw the circular track and a few houses (i.e. red cubes)
-function drawScenery( mv ) {
-
-    // draw track
-    gl.uniform4fv( colorLoc, GRAY );
-    gl.bindBuffer( gl.ARRAY_BUFFER, trackBuffer );
-    gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
-
-    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
-    gl.drawArrays( gl.TRIANGLES, 0, numTrackVertices );
-
-
-    // // draw houses    
-    // house(-20.0, 50.0, 5.0, mv);
-    // house(0.0, 70.0, 10.0, mv);
-    // house(20.0, -10.0, 8.0, mv);
-    // house(40.0, 120.0, 10.0, mv);
-    // house(-30.0, -50.0, 7.0, mv);
-    // house(10.0, -60.0, 10.0, mv);
-    // house(-20.0, 75.0, 8.0, mv);
-    // house(-40.0, 140.0, 10.0, mv);
-
-}
 
 function generateCars(count) {
     let newCars = [];
@@ -185,7 +144,7 @@ function generateCars(count) {
 function drawCar( mv ) {
 
     // set color to blue
-    gl.uniform4fv( colorLoc, BLUE );
+    gl.uniform4fv( colorLoc, RED );
     
     gl.bindBuffer( gl.ARRAY_BUFFER, cubeBuffer );
     gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
@@ -205,6 +164,40 @@ function drawCar( mv ) {
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv1));
     gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
 }
+
+function drawTrack( mv ) {
+
+    // set color to GRAY
+    gl.uniform4fv( colorLoc, GRAY );
+    
+    gl.bindBuffer( gl.ARRAY_BUFFER, cubeBuffer );
+    gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
+
+    var mv = mv;
+    // size of the track
+    mv = mult( mv, scalem( 50.0, 200, 0.1 ) );
+    mv = mult( mv, translate( 0.0, 0.0, 0.0 ) );
+
+    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
+    gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
+}
+
+function drawWater( mv ) {
+
+    // set color to GRAY
+    gl.uniform4fv( colorLoc, BLUE );
+    
+    gl.bindBuffer( gl.ARRAY_BUFFER, cubeBuffer );
+    gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
+
+    var mv = mv;
+    // size of the track
+    mv = mult( mv, scalem( 50.0, 200, 0.1 ) );
+    mv = mult( mv, translate( -1.0, 0.0, 0.0 ) );
+
+    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
+    gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
+}
     
 
 function render(){
@@ -214,14 +207,23 @@ function render(){
     if (carYPos > TRACK_LENGTH ) {
         carYPos = -TRACK_LENGTH ; // Wrap around
     }
-
+    
+    
     // drawCar()
     var mv = mat4();
-        // Distant and stationary viewpoint
-	    mv = lookAt( vec3(150.0, 0.0, 100.0+height), vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0) );
-	    //drawScenery( mv );
-	    mv = mult( mv, translate( 0.0, carYPos, 0.0 ) );
-	    // mv = mult( mv, rotateZ( carDirection ) ) ;
-	    drawCar( mv );
+    // Distant and stationary viewpoint
+    mv = lookAt(vec3(100.0, 0.0, 100.0 + height), vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0));
+
+    // Draw the track at its original position
+    drawTrack(mv);
+
+    var waterPos = mv;
+    drawWater(waterPos);
+    
+    // Create a new matrix for the car that includes its position
+    var carMv = mult(mv, translate(0.0, carYPos, 0.0));
+    
+    // Draw the car
+    drawCar(carMv);
     requestAnimFrame( render );
 }
