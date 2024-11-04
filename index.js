@@ -1,29 +1,18 @@
-////////////////////////////////////////////////////////////////////
-//    Sýnidæmi í Tölvugrafík
-//    Byggt á sýnisforriti í C fyrir OpenGL, höfundur óþekktur.
-//
-//     Bíll sem keyrir í hringi í umhverfi með húsum.  Hægt að
-//    breyta sjónarhorni áhorfanda með því að slá á 1, 2, ..., 8.
-//    Einnig hægt að breyta hæð áhorfanda með upp/niður örvum.
-//    Leiðrétt útgáfa fyrir réttan snúning í MV.js
-//
-//    Hjálmtýr Hafsteinsson, september 2024
-////////////////////////////////////////////////////////////////////
 var canvas;
 var gl;
 
 // position of the track
-var TRACK_RADIUS = 100.0;
-var TRACK_INNER = 90.0;
-var TRACK_OUTER = 110.0;
-var TRACK_PTS = 100;
+var TRACK_LENGTH = 130; //staðsetning hvar bíll keyrir
+// var TRACK_INNER = 20.0; //Þykktin
+// var TRACK_OUTER = 55.0; //stærðin
+var TRACK_PTS = 11; // punktar
 
 var BLUE = vec4(0.0, 0.0, 1.0, 1.0);
 var RED = vec4(1.0, 0.0, 0.0, 1.0);
 var GRAY = vec4(0.4, 0.4, 0.4, 1.0);
 
 var numCubeVertices  = 36;
-var numTrackVertices  = 2*TRACK_PTS + 2;
+var numTrackVertices  = 2*TRACK_PTS;
 
 
 // variables for moving car
@@ -33,7 +22,7 @@ var carYPos = 0.0;
 var height = 0.0;
 
 // current viewpoint
-var view = 1;
+var view = 0.0;
 
 var colorLoc;
 var mvLoc;
@@ -43,6 +32,9 @@ var proj;
 var cubeBuffer;
 var trackBuffer;
 var vPosition;
+
+var cars = [];
+var numCars = 5;
 
 // the 36 vertices of the cube
 var cVertices = [
@@ -121,38 +113,35 @@ window.onload = function init()
     window.addEventListener("keydown", function(e){
 
     });
+    cars = generateCars(numCars);
     render();
 }
 
 
 // create the vertices that form the car track
 function createTrack() {
-
-    var theta = 0.0;
-    for( var i=0; i<=TRACK_PTS; i++ ) {
-        var p1 = vec3(TRACK_OUTER*Math.cos(radians(theta)), TRACK_OUTER*Math.sin(radians(theta)), 0.0);
-        var p2 = vec3(TRACK_INNER*Math.cos(radians(theta)), TRACK_INNER*Math.sin(radians(theta)), 0.0) 
-        tVertices.push( p1 );
-        tVertices.push( p2 );
-        theta += 360.0/TRACK_PTS;
+    for (var i = 0; i <= TRACK_PTS; i++) {
+        var x = i * (TRACK_LENGTH / TRACK_PTS) - (TRACK_LENGTH / 2); // Centered around the origin
+        var p = vec3(x, 0.0, 0.0); // y and z are 0 for a line along x-axis
+        tVertices.push(p);
     }
 }
 
 
-// draw a house in location (x, y) of size size
-function house( x, y, size, mv ) {
+// // draw a house in location (x, y) of size size
+// function house( x, y, size, mv ) {
 
-    gl.uniform4fv( colorLoc, RED );
+//     gl.uniform4fv( colorLoc, RED );
     
-    mv = mult( mv, translate( x, y, size/2 ) );
-    mv = mult( mv, scalem( size, size, size ) );
+//     mv = mult( mv, translate( x, y, size/2 ) );
+//     mv = mult( mv, scalem( size, size, size ) );
 
-    gl.bindBuffer( gl.ARRAY_BUFFER, cubeBuffer );
-    gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
+//     gl.bindBuffer( gl.ARRAY_BUFFER, cubeBuffer );
+//     gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
 
-    gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
-    gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
-}
+//     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
+//     gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
+// }
     
 
 // draw the circular track and a few houses (i.e. red cubes)
@@ -164,19 +153,31 @@ function drawScenery( mv ) {
     gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
 
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
-    gl.drawArrays( gl.TRIANGLE_STRIP, 0, numTrackVertices );
+    gl.drawArrays( gl.TRIANGLES, 0, numTrackVertices );
 
 
-    // draw houses    
-    house(-20.0, 50.0, 5.0, mv);
-    house(0.0, 70.0, 10.0, mv);
-    house(20.0, -10.0, 8.0, mv);
-    house(40.0, 120.0, 10.0, mv);
-    house(-30.0, -50.0, 7.0, mv);
-    house(10.0, -60.0, 10.0, mv);
-    house(-20.0, 75.0, 8.0, mv);
-    house(-40.0, 140.0, 10.0, mv);
+    // // draw houses    
+    // house(-20.0, 50.0, 5.0, mv);
+    // house(0.0, 70.0, 10.0, mv);
+    // house(20.0, -10.0, 8.0, mv);
+    // house(40.0, 120.0, 10.0, mv);
+    // house(-30.0, -50.0, 7.0, mv);
+    // house(10.0, -60.0, 10.0, mv);
+    // house(-20.0, 75.0, 8.0, mv);
+    // house(-40.0, 140.0, 10.0, mv);
 
+}
+
+function generateCars(count) {
+    let newCars = [];
+    for (let i = 0; i < count; i++) {
+        newCars.push({
+            x: Math.random() * 2 - 1,  // x-staðsetning á bilinu -1 til 1
+            y: Math.random() * 0.8 + 0.1, // y-staðsetning á bilinu 0.1 til 0.9 (ofar á skjánum)
+            speed: (Math.random() * 0.01 + 0.009) * (Math.random() > 0.3 ? 1 : -1) // hraði, þar sem sumir fara til vinstri
+        });
+    }
+    return newCars;
 }
 
 
@@ -191,14 +192,14 @@ function drawCar( mv ) {
 
     var mv1 = mv;
     // lower body of the car
-    mv = mult( mv, scalem( 10.0, 3.0, 2.0 ) );
+    mv = mult( mv, scalem( 3.0, 10.0, 2.0 ) );
     mv = mult( mv, translate( 0.0, 0.0, 0.5 ) );
 
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
     gl.drawArrays( gl.TRIANGLES, 0, numCubeVertices );
 
     // upper part of the car
-    mv1 = mult( mv1, scalem( 4.0, 3.0, 2.0 ) );
+    mv1 = mult( mv1, scalem( 3.0, 4.0, 2.0 ) );
     mv1 = mult( mv1, translate( -0.2, 0.0, 1.5 ) );
 
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv1));
@@ -206,22 +207,21 @@ function drawCar( mv ) {
 }
     
 
-function render()
-{
+function render(){
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    carDirection += 3.0;
-    if ( carDirection > 360.0 ) carDirection = 0.0;
+    carYPos += 0.5; // Adjust speed as needed
+    if (carYPos > TRACK_LENGTH ) {
+        carYPos = -TRACK_LENGTH ; // Wrap around
+    }
 
-    carXPos = TRACK_RADIUS * Math.sin( radians(carDirection) );
-    carYPos = TRACK_RADIUS * Math.cos( radians(carDirection) );
-
+    // drawCar()
     var mv = mat4();
         // Distant and stationary viewpoint
-	    mv = lookAt( vec3(250.0, 0.0, 100.0+height), vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0) );
-	    drawScenery( mv );
-	    mv = mult( mv, translate( carXPos, carYPos, 0.0 ) );
-	    mv = mult( mv, rotateZ( -carDirection ) ) ;
+	    mv = lookAt( vec3(150.0, 0.0, 100.0+height), vec3(0.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0) );
+	    //drawScenery( mv );
+	    mv = mult( mv, translate( 0.0, carYPos, 0.0 ) );
+	    // mv = mult( mv, rotateZ( carDirection ) ) ;
 	    drawCar( mv );
     requestAnimFrame( render );
 }
