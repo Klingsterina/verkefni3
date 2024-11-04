@@ -51,9 +51,9 @@ var waterMin= -30;
 var trackMax = -20;
 var trackMin = 20;
 
-var frogPos = { x: 0, y: 0 }; // Initial frog position
-var frogAlive = true; // Is the frog alive?
-var fly = { active: true, x: 2, y: 0 }; // Example fly position
+var frogPos = { x: 0, y: 0 }; // Upphafsstaða frosks
+var frogAlive = true; // Er froskurinn lifandi?
+var fly = { active: true, x: 2, y: 0 }; // Dæmi um fluguhnit
 
 var initialLogPositions = [
     { x: -85, y: TRACK_LENGTH }, // Log 1
@@ -78,7 +78,6 @@ var initialLogPositions = [
     { x: -40, y: TRACK_LENGTH -4}, // Log 10.5
     { x: -35, y: TRACK_LENGTH }, // Log 11
     { x: -35, y: TRACK_LENGTH -3}, // Log 11.5
-    // Add more logs as needed
 ];
 
 var initialCarPositions = [
@@ -117,7 +116,6 @@ var cVertices = [
 
 // vertices of the track
 var tVertices = [];
-
 
 window.onload = function init(){
     canvas = document.getElementById( "gl-canvas" );
@@ -184,6 +182,7 @@ window.onload = function init(){
             origX = e.clientX;
         }
     });
+    // ÞETTA ER CHATGPT BUT IT WORKS
     cars = initialCarPositions.map(pos => ({ ...pos, speed: Math.random() * 0.5 * (Math.random() > 0.5 ? 1 : -1) })); // Add speed for logs
     logs = initialLogPositions.map((pos, index) => {
         // Set speed based on the index: every even index will have a different speed
@@ -199,32 +198,33 @@ window.onload = function init(){
     render();
 }
 
-function generateCars(count) {
-    let newCars = [];
-    for (let i = 0; i < count; i++) {
-        newCars.push({
-            x: Math.random() * (trackMax - trackMin) + trackMin, // Random x position within track
-            y: Math.random() // Initialize y at the starting position
-        });
-    }
-    return newCars;
-}
+// Óþarfi eins og er EKKI HENDA!!
+// function generateCars(count) {
+//     let newCars = [];
+//     for (let i = 0; i < count; i++) {
+//         newCars.push({
+//             x: Math.random() * (trackMax - trackMin) + trackMin, // Random x position within track
+//             y: Math.random() // Initialize y at the starting position
+//         });
+//     }
+//     return newCars;
+// }
 
-function generateLogs(count) {
-    let newLogs = [];
-    for (let i = 0; i < count; i++) {
-        newLogs.push({
-            x: Math.random() * (waterMax - waterMin) + waterMin, // Random x position within water
-            y: TRACK_LENGTH // Initialize y at the starting position
-        });
-    }
-    return newLogs;
-}
+// Óþarfi eins og er EKKI HENDA
+// function generateLogs(count) {
+//     let newLogs = [];
+//     for (let i = 0; i < count; i++) {
+//         newLogs.push({
+//             x: Math.random() * (waterMax - waterMin) + waterMin, // Random x position within water
+//             y: TRACK_LENGTH // Byrjunarstaða
+//         });
+//     }
+//     return newLogs;
+// }
 
 
-// draw car as two blue cubes
+// Teikna bílinn
 function drawCar(mv, car) {
-    // set color to red (assuming you want to keep RED color)
     gl.uniform4fv(colorLoc, RED);
     
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeBuffer);
@@ -234,11 +234,12 @@ function drawCar(mv, car) {
 
     // lower body of the car
     mv = mult(mv, scalem(3.0, 10.0, 4.0));
-    mv = mult(mv, translate(0.0, car.y, 0.5)); // Use car.y for vertical position
+    mv = mult(mv, translate(0.0, car.y, 0.5));
 
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
     gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
 
+    //ÉG fæ ekki þetta til að láta virka!!!!!!!!!!!!
     // // // upper part of the car
     // mv1 = mult(mv1, scalem(3.0, 4.0, 2.0));
     // mv1 = mult(mv1, translate(-0.2, car.y, 1.5)); // Use car.y for vertical positi
@@ -252,9 +253,9 @@ function drawFrog(mv, frogPos) {
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeBuffer);
     gl.vertexAttribPointer(vPosition, 3, gl.FLOAT, false, 0, 0);
 
-    mv = mult(mv, scalem(2.0, 2.0, 2.0)); // Adjust size as needed
+    mv = mult(mv, scalem(2.0, 2.0, 2.0)); 
     mv = mult(mv, translate(0.0, 0.0, 1.0));
-    mv = mult(mv, translate(frogPos.x, frogPos.y, 0.0)); // Position the frog
+    mv = mult(mv, translate(frogPos.x, frogPos.y, 0.0));
 
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
     gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
@@ -268,9 +269,9 @@ function drawLog(mv, log) {
     gl.bindBuffer(gl.ARRAY_BUFFER, cubeBuffer);
     gl.vertexAttribPointer(vPosition, 3, gl.FLOAT, false, 0, 0);
 
-    // Adjust matrix for each log based on its properties
-    mv = mult(mv, scalem(4.0, 25.0, 2.0)); // Adjust log size
-    mv = mult(mv, translate(0.0, log.y, 0)); // Apply x and y position
+    // Teikna log
+    mv = mult(mv, scalem(4.0, 25.0, 2.0)); 
+    mv = mult(mv, translate(0.0, log.y, 0));
     gl.uniformMatrix4fv(mvLoc, false, flatten(mv));
     gl.drawArrays(gl.TRIANGLES, 0, numCubeVertices);
 }
@@ -284,7 +285,7 @@ function drawTrack( mv ) {
     gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
 
     var mv = mv;
-    // size of the track
+    // Stærðin af götunni
     mv = mult( mv, scalem( 40.0, 200, 0.1 ) );
     mv = mult( mv, translate( 0.0, 0.0, 0.0 ) );
 
@@ -301,7 +302,7 @@ function drawWater( mv ) {
     gl.vertexAttribPointer( vPosition, 3, gl.FLOAT, false, 0, 0 );
 
     var mv = mv;
-    // size of the track
+    // Stærðin af vatninu
     mv = mult( mv, scalem( 60.0, 200, 0.1 ) );
     mv = mult( mv, translate( -1.0, 0.0, 0.0 ) );
 
@@ -314,29 +315,29 @@ function drawWater( mv ) {
     }
 
 function checkForCollision() {
-    // Check collision with cars
+    // Athuga árakstur við bíla
     for (let car of cars) {
         if (Math.abs(frogPos.x - car.x) < 2.5 && Math.abs(frogPos.y - car.y) < 0.5) { // Adjusted thresholds
             frogAlive = false; // Set frog as not alive
             console.log("Frog hit by car! Game Over!");
             newGame();
-            return; // Exit the function as the frog is dead
+            return; // Fara úr fallinu ef froskurinn er dauður
         }
     }
 
-    // Check if the frog is on a log
-    let onLog = false; // Track if the frog is on a log
+    // Athuga hvort froskurinn sé á log
+    let onLog = false; 
     for (let log of logs) {
         // Adjusted thresholds for logs
         if (Math.abs(frogPos.x - log.x) < 4.0 && Math.abs(frogPos.y - log.y) < 1.0) {
-            onLog = true; // Frog is on a log
-            break; // No need to check other logs
+            onLog = true; // Froskurinn er á log
+            break;
         }
     }
 
-    // Check if the frog is in the water boundaries
+    // Athuga ef froskurinn er undir vatni
     if (frogPos.y < waterMax && frogPos.y > waterMin) {
-        frogAlive = false; // Set frog as not alive
+        frogAlive = false; //froskurinn deyr
         console.log("Frog drowned! Game Over!");
     } else if (onLog) {
         console.log("Frog is safe on the log!");
@@ -355,11 +356,11 @@ function render() {
     cars.forEach(car => {
         car.y += car.speed; // Update log position
 
-        // Wrap around logic for logs
+        // Ef bílarnir fara útfyrir Track þá byrtast hinumeginn
         if (car.y > TRACK_LENGTH) {
-            car.y = -TRACK_LENGTH; // Wrap around to the bottom
+            car.y = -TRACK_LENGTH;
         } else if (car.y < -TRACK_LENGTH) {
-            car.y = TRACK_LENGTH; // Wrap around to the top
+            car.y = TRACK_LENGTH; 
         }
     });
 
@@ -367,11 +368,11 @@ function render() {
     logs.forEach(log => {
         log.y += log.speed; // Update log position
 
-        // Wrap around logic for logs
+        // Ef logs fara útfyrir Track þá byrtast hinumeginn
         if (log.y > TRACK_LENGTH) {
-            log.y = -TRACK_LENGTH; // Wrap around to the bottom
+            log.y = -TRACK_LENGTH; 
         } else if (log.y < -TRACK_LENGTH) {
-            log.y = TRACK_LENGTH; // Wrap around to the top
+            log.y = TRACK_LENGTH;
         }
     });
 
@@ -387,13 +388,13 @@ function render() {
     drawWater(mv);
     drawFrog(mv, frogPos);
 
-    // Draw each car
+    // Teikna hvern bíl
     cars.forEach(car => {
         var carMv = mult(mv, translate(car.x, car.y, 0.0)); // Use car.x for positioning
         drawCar(carMv, car);
     });
 
-    // Draw each log
+    // Teikna hvert log
     logs.forEach(log => {
         var logsMv = mult(mv, translate(log.x, log.y, 0.0)); // Position each log
         drawLog(logsMv, log);
@@ -411,3 +412,5 @@ function render() {
 //     // You can implement score increment or other effects here
 //     console.log("Fly eaten!");
 // }
+
+//ÉG notaði sumt úr verkefni 1 þannig þetta er smá spagettíkóðað
