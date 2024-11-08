@@ -1,43 +1,13 @@
-<html>
-
-<script id="vertex-shader" type="x-shader/x-vertex">
-
-attribute  vec4 vPosition;
-
-uniform mat4 projection;
-uniform mat4 modelview;
-
-void main() 
-{
-    gl_Position = projection * modelview * vPosition;
-} 
-</script>
-
-<script id="fragment-shader" type="x-shader/x-fragment">
-
-precision mediump float;
-   
-uniform vec4 fColor;
-
-void main()
-{
-    gl_FragColor = fColor;
-}
-</script>
-
-<script type="text/javascript" src="../Common/webgl-utils.js"></script>
-<script type="text/javascript" src="../Common/initShaders.js"></script>
-<script type="text/javascript" src="../Common/MV.js"></script>
-<script type="text/javascript" src="index.js"></script>
-
-<body>
-<h4>Sláið á 1, 2, ..., 8 til að skipta um sjónarhorn.  Núverandi sjónarhorn er fyrir neðan myndina</h4>
-<h4>Örvalyklar hækka og lækka staðsetningu áhorfanda (fer eftir sjónarhorni)</h4>
-<canvas id="gl-canvas" width="700" height="700">
-<div id="Viewpoint"></div>
-<div id="Height"></div>
-   
-<br/>
-
-</body>
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>My first three.js app</title>
+		<style>
+			body { margin: 0; }
+		</style>
+	</head>
+	<body>
+		<script type="module" src="/index.js"></script>
+	</body>
 </html>
