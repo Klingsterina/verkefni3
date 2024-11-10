@@ -20,21 +20,21 @@ scene.add(directLight)
 camera.position.z = 13;
 camera.position.y = 6;
 
-//Ground
+// Ground
 const groundGeometry = new THREE.BoxGeometry(15, 1, 21);
 const groundMaterial = new THREE.MeshPhongMaterial({ color: 0xfff8f2 });
 const ground = new THREE.Mesh(groundGeometry, groundMaterial);
 ground.position.set(0, -(ground.geometry.parameters.height / 2), 1);
 scene.add(ground);
 
-//Gata
+// Gata
 const roadGeometry = new THREE.BoxGeometry(15.02, 1, 9);
 const roadMaterial = new THREE.MeshPhongMaterial({color: 0x00ff10});
 const road = new THREE.Mesh(roadGeometry, roadMaterial);
 road.position.set(0, -(road.geometry.parameters.height / 2)+0.01, 5);
 scene.add(road);
 
-//water
+// water
 const waterGeometry = new THREE.BoxGeometry(15.02, 1, 8);
 const waterMaterial = new THREE.MeshPhongMaterial({color: 0x0000ff});
 const water = new THREE.Mesh(waterGeometry, waterMaterial);
@@ -44,7 +44,7 @@ let waterBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
 waterBB.setFromObject(water);
 scene.add(water);
 
-// Fluga (Fly)
+// Fluga
 const flugaGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
 const flugaMaterial = new THREE.MeshPhongMaterial({ color: 0xff00f0 });
 const fluga = new THREE.Mesh(flugaGeometry, flugaMaterial);
