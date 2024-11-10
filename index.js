@@ -6,6 +6,9 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 100, window.innerWidth / window.innerHeight, 0.1, 1000 );
 scene.background = new THREE.Color(0x87ceeb);
 
+const mapWidth= 7.5; // Half the width of the map (adjust as needed)
+const mapDepth = 10.5; // Half the depth of the map (adjust as needed)
+
 const renderer = new THREE.WebGLRenderer();
 const controls = new OrbitControls( camera, renderer.domElement );
 renderer.setSize( window.innerWidth, window.innerHeight );
@@ -104,53 +107,64 @@ car.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + 
 let carBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
 
 //teykna bíla frá 1 til 9
-const carPositions = [9,8,7,6,5,4,3,2,1];
+const carPositions = [9, 8, 7, 6, 5, 4, 3, 2, 1]; // Lane positions (z-values)
+const middleLanes = [3, 4, 5]; // Middle three lanes for cars coming from the right
 const cars = [];
-let carSpeeds = []
-const maxSpeed = 6
+let carSpeeds = [];
+const maxSpeed = 6;
 const minSpeed = 2;
 for (let i = 0; i < carPositions.length; i++) {
-	carSpeeds.push(Math.random()*(maxSpeed-minSpeed)+minSpeed)
+    carSpeeds.push(Math.random() * (maxSpeed - minSpeed) + minSpeed);
 }
 
 for (let i = 0; i < carPositions.length; i++) {
-	const car = new THREE.Mesh(carGeometry, carMaterial);
-	car.position.set(Math.random()*14-7, ground.position.y + ground.geometry.parameters.height / 2 + car.geometry.parameters.height / 2, carPositions[i]); // Start each car at x = 4
-	cars.push(car);
-	scene.add(car);
+    const car = new THREE.Mesh(carGeometry, carMaterial);
+    // Set direction: -1 for right-to-left, 1 for left-to-right
+    const direction = middleLanes.includes(i) ? -1 : 1;
+    const xPosition = direction === 1 ? -mapWidth - car.geometry.parameters.width / 2 : mapWidth + car.geometry.parameters.width / 2;
+    car.position.set(xPosition, ground.position.y + ground.geometry.parameters.height / 2 + car.geometry.parameters.height / 2, carPositions[i]);
+    // Adjust the speed for the direction
+    carSpeeds[i] *= direction;
+    cars.push(car);
+    scene.add(car);
 }
 
 // Fall til að færa bílana á x-axis
-const mapwidth = 6
 function moveCars(deltaTime) {
-	if (isGameOver) {
-		return;
-	}
+    if (isGameOver) {
+        return;
+    }
+
+    const maxSpeed = 7;
+    const minSpeed = 2;
+    const minSpeedCap = 5; // Set the minimum speed cap within the function
+
     for (let i = 0; i < cars.length; i++) {
         const car = cars[i];
         car.position.x += carSpeeds[i] * deltaTime;
 
-        // Check if the car is out of bounds and reverse direction
-        if (car.position.x <= -mapwidth || car.position.x >= mapwidth) {
-            carSpeeds[i] *= -1;
-            car.position.x = THREE.MathUtils.clamp(car.position.x, -mapwidth, mapwidth);
+        // Remove and respawn cars when they move out of the map bounds
+        if (carSpeeds[i] > 0 && car.position.x > mapWidth + car.geometry.parameters.width / 2 ||
+            carSpeeds[i] < 0 && car.position.x < -mapWidth - car.geometry.parameters.width / 2) {
+            // Move the car to the opposite side
+            car.position.x = carSpeeds[i] > 0 ? -mapWidth - car.geometry.parameters.width / 2 : mapWidth + car.geometry.parameters.width / 2;
+            
+            // Assign a new random speed for the respawned car and ensure it's above the minimum cap
+            let newSpeed = Math.max((Math.random() * (maxSpeed - minSpeed) + minSpeed), minSpeedCap);
+            carSpeeds[i] = newSpeed * (carSpeeds[i] > 0 ? 1 : -1); // Keep the direction
         }
 
         // Update the bounding box for the car
         carBB.setFromObject(car);
 
         // Check for collision only if the frog is alive
-      if (isFrogAlive && frogBB.intersectsBox(carBB)) {
-				isFrogAlive = false; // Mark the frog as dead
-				// frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10);
-				// frogTargetPosition.copy(frog.position); // Reset the target position
-				console.log("Collision detected! Try again");
-				// isFrogAlive = true;
-				gameOver();
-			}
+        if (isFrogAlive && frogBB.intersectsBox(carBB)) {
+            isFrogAlive = false; // Mark the frog as dead
+            console.log("Collision detected! Try again");
+            gameOver();
+        }
     }
 }
-
 
 // teykna logs
 const logGeometry = new THREE.BoxGeometry(3, 1, 1);
@@ -174,7 +188,7 @@ function genlog() {
         const log = new THREE.Mesh(logGeometry, logMaterial);
         const zPosition = lanes[laneIndex];
         const direction = laneIndex % 2 === 0 ? 1 : -1; // Alternate direction per lane
-        const xPosition = direction === 1 ? -mapwidth - log.geometry.parameters.width / 2 : mapwidth + log.geometry.parameters.width / 2;
+        const xPosition = direction === 1 ? -mapWidth - log.geometry.parameters.width / 2 : mapWidth + log.geometry.parameters.width / 2;
         log.position.set(xPosition, ground.position.y + ground.geometry.parameters.height / 2 + log.geometry.parameters.height / 2 - 0.7, zPosition);
 
         logs.push(log);
@@ -188,21 +202,27 @@ function genlog() {
     }
 
 	function moveLogs(deltaTime) {
+		if (isGameOver) {
+			return;
+		}
 		isOnLog = false; // Reset at the start of each frame to check if the frog is on a log
 	
 		for (let i = logs.length - 1; i >= 0; i--) {
 			const log = logs[i];
 			log.position.x += logSpeeds[i] * deltaTime;
 	
-			// Remove logs only after they are completely off the map
-			if (logSpeeds[i] > 0 && log.position.x > mapwidth + log.geometry.parameters.width ||
-				logSpeeds[i] < 0 && log.position.x < -mapwidth - log.geometry.parameters.width) {
+			// Remove logs when they move out of the map bounds and respawn them
+			if (logSpeeds[i] > 0 && log.position.x > mapWidth + log.geometry.parameters.width / 2 ||
+				logSpeeds[i] < 0 && log.position.x < -mapWidth - log.geometry.parameters.width / 2) {
+				// Remove the log from the scene
 				scene.remove(log);
-				const laneIndex = lanes.indexOf(log.position.z); // Get the lane index
+	
+				// Remove the log and its speed from the arrays
 				logs.splice(i, 1);
 				logSpeeds.splice(i, 1);
 	
-				// Spawn a new log in the same lane after the old one is removed
+				// Respawn a new log in the same lane
+				const laneIndex = lanes.indexOf(log.position.z); // Get the lane index
 				spawnLog(laneIndex);
 			} else {
 				logBB.setFromObject(log);
@@ -221,11 +241,11 @@ function genlog() {
 					} else if (frog.position.x > mapWidth) {
 						frog.position.x = mapWidth;
 						frogTargetPosition.x = mapWidth;
-					};
+					}
 				}
 			}
 		}
-	}	
+	}
     return moveLogs;
 }
 
@@ -317,8 +337,6 @@ function animate(currentTime) {
 
 // Movement controls
 const xSpeed = 1;
-const mapWidth = 7.5; // Half the width of the map (adjust as needed)
-const mapDepth = 10.5; // Half the depth of the map (adjust as needed)
 document.addEventListener("keydown", onDocumentKeyDown, false);
 function onDocumentKeyDown(event) {
     const keyCode = event.which;
