@@ -79,46 +79,36 @@ let carSpeeds = []
 const maxSpeed = 6
 const minSpeed = 2;
 for (let i = 0; i < carPositions.length; i++) {
-    carSpeeds.push(Math.random()*(maxSpeed-minSpeed)+minSpeed)
+	carSpeeds.push(Math.random()*(maxSpeed-minSpeed)+minSpeed)
 }
 
 for (let i = 0; i < carPositions.length; i++) {
-    const car = new THREE.Mesh(carGeometry, carMaterial);
-    car.position.set(Math.random()*14-7, ground.position.y + ground.geometry.parameters.height / 2 + car.geometry.parameters.height / 2, carPositions[i]); // Start each car at x = 4
-    cars.push(car);
-    scene.add(car);
+	const car = new THREE.Mesh(carGeometry, carMaterial);
+	car.position.set(Math.random()*14-7, ground.position.y + ground.geometry.parameters.height / 2 + car.geometry.parameters.height / 2, carPositions[i]); // Start each car at x = 4
+	cars.push(car);
+	scene.add(car);
 }
 
 // Fall til að færa bílana á x-axis
 const mapwidth = 6
 function moveCars(deltaTime) {
-    for (let i = 0; i < cars.length; i++) {
-        const car = cars[i];
-        car.position.x += carSpeeds[i] * deltaTime;
+	for (let i = 0; i < cars.length; i++) {
+			const car = cars[i];
+			car.position.x += carSpeeds[i] * deltaTime;
 
-        // láta bílana snúa við ef þeir fara út í enda
-        if (car.position.x <= -mapwidth) {
-            car.position.x = -mapwidth;
-            carSpeeds[i] *= -1;
-        }
+			if (car.position.x <= -mapwidth || car.position.x >= mapwidth) {
+					carSpeeds[i] *= -1;
+					car.position.x = THREE.MathUtils.clamp(car.position.x, -mapwidth, mapwidth);
+			}
 
-        if (car.position.x >= mapwidth) {
-            car.position.x = mapwidth;
-            carSpeeds[i] *= -1;
-        }
-
-        // Láta froskinn fara aftur á byrjunarreit ef hann klessir á
-        for (let i = 0; i < cars.length; i++) {
-            const car = cars[i];
-            carBB.setFromObject(car);
-            if (isFrogAlive && frogBB.intersectsBox(carBB)) {
-                frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 0);
-                console.log("Collision detected! Try again");
-            }
-        }
-
-    }
+			carBB.setFromObject(car);
+			if (isFrogAlive && frogBB.intersectsBox(carBB)) {
+					frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 0);
+					console.log("Collision detected! Try again");
+			}
+	}
 }
+
 
 // teykna logs
 const logGeometry = new THREE.BoxGeometry(3, 1, 0.9);
@@ -135,71 +125,49 @@ let logSpeeds = [];
 
 // Initialize log speeds
 for (let i = 0; i < logPositions.length; i++) {
-    logSpeeds.push(Math.random() * (maxSpeed - minSpeed) + minSpeed);
+	logSpeeds.push(Math.random() * (maxSpeed - minSpeed) + minSpeed);
 }
 
 // Create log objects
 for (let i = 0; i < logPositions.length; i++) {
-    const log = new THREE.Mesh(logGeometry, logMaterial);
-    log.position.set(Math.random() * 14 - 7, ground.position.y + ground.geometry.parameters.height / 2 + log.geometry.parameters.height / 2 - 0.7, logPositions[i]);
-    logs.push(log);
-    scene.add(log);
+	const log = new THREE.Mesh(logGeometry, logMaterial);
+	log.position.set(Math.random() * 14 - 7, ground.position.y + ground.geometry.parameters.height / 2 + log.geometry.parameters.height / 2 - 0.7, logPositions[i]);
+	logs.push(log);
+	scene.add(log);
 }
 
 // Function to move logs along the x-axis
 function moveLogs(deltaTime) {
-    // Loop through each log
-    for (let i = 0; i < logs.length; i++) {
-        const log = logs[i];
-        
-        // Move log along x-axis
-        log.position.x += logSpeeds[i] * deltaTime;
+	isOnLog = false; // Only reset once per call, not every iteration
 
-        // Reset log position if it goes out of bounds
-        if (log.position.x <= -mapwidth) {
-            log.position.x = -mapwidth;
-            logSpeeds[i] *= -1;
-        }
+	for (let i = 0; i < logs.length; i++) {
+			const log = logs[i];
 
-        if (log.position.x >= mapwidth) {
-            log.position.x = mapwidth;
-            logSpeeds[i] *= -1;
-        }
+			// Move log along x-axis and clamp within bounds
+			log.position.x += logSpeeds[i] * deltaTime;
+			if (log.position.x <= -mapwidth || log.position.x >= mapwidth) {
+					logSpeeds[i] *= -1;
+					log.position.x = THREE.MathUtils.clamp(log.position.x, -mapwidth, mapwidth);
+			}
 
-        // Initialize log's bounding box for collision detection
-        // const logBB = new THREE.Box3().setFromObject(log);
-        
-        // Check for collision with frog
-        // if frog is on log he moves with it and is safe
-        // if frog goes off log and touches water he dies
-        // if (isFrogAlive && frogBB.intersectsBox(logBB)) {
-        //     isOnLog = true;
-        //     console.log("Safe on log!");
-        // }
+			// Update bounding box for the log only if necessary
+			logBB.setFromObject(log);
 
-        // Láta froskinn fara aftur á byrjunarreit ef hann klessir á
-        for (let i = 0; i < logs.length; i++) {
-            let log = logs[i];
-            logBB.setFromObject(log);
-            if (frogBB.intersectsBox(logBB)) {
-                isOnLog = true;
-                isOnWater = false;
-                frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 0);
-                console.log("Safe on log!");
-            } else if (!isOnLog && frogBB.intersectsBox(waterBB)) {
-                isOnLog = false;
-                frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 0);
-                console.log("þú dast út í vatnið");
-            }
-        }
+			// Check if frog is on this log and move frog with log if true
+			if (frogBB.intersectsBox(logBB)) {
+					isOnLog = true;
+					frog.position.x += logSpeeds[i] * deltaTime;
+			}
+	}
 
-        // if ( && !isOnLog) {
-        //     isFrogAlive = false;
-        //     isOnLog = false;
-        //     isOnWater = true;
-        //     frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 0);
-        // }
-    }
+	// Water check only if the frog is not on any log
+	if (!isOnLog && frogBB.intersectsBox(waterBB)) {
+			isOnWater = true;
+			frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 0);
+			console.log("You fell into the water!");
+	} else {
+			isOnWater = false;
+	}
 }
 
 let flugaCounter = 0;
