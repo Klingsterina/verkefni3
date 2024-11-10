@@ -48,9 +48,9 @@ scene.add(water);
 const flugaGeometry = new THREE.BoxGeometry(0.5,0.5,0.5);
 const flugaMaterial = new THREE.MeshPhongMaterial({color: 0xff00f0});
 const fluga = new THREE.Mesh(flugaGeometry, flugaMaterial);
-fluga.position.set(3, (ground.position.y + ground.geometry.parameters.height / 2 + fluga.geometry.parameters.height / 2), 0);
+fluga.position.set(3, (ground.position.y + ground.geometry.parameters.height / 2 + fluga.geometry.parameters.height / 2), -9);
 let flugaBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-flugaBB.setFromObject(fluga);
+// flugaBB.setFromObject(fluga);
 scene.add(fluga);
 
 // Frog
@@ -58,7 +58,7 @@ const frogGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
 const frogMaterial = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
 const frog = new THREE.Mesh(frogGeometry, frogMaterial);
 let isFrogAlive = true;
-frog.position.set(0, (ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2), 0);
+frog.position.set(0, (ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2), 10);
 
 // Búa til collision fyrir frosk
 let frogBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
@@ -103,7 +103,7 @@ function moveCars(deltaTime) {
 
 			carBB.setFromObject(car);
 			if (isFrogAlive && frogBB.intersectsBox(carBB)) {
-					frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 0);
+					frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10);
 					console.log("Collision detected! Try again");
 			}
 	}
@@ -163,42 +163,59 @@ function moveLogs(deltaTime) {
 	// Water check only if the frog is not on any log
 	if (!isOnLog && frogBB.intersectsBox(waterBB)) {
 			isOnWater = true;
-			frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 0);
+			frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10);
 			console.log("You fell into the water!");
 	} else {
 			isOnWater = false;
 	}
 }
 
-let flugaCounter = 0;
-// Gera interaction frog og flugu
-if (frogBB.intersectsBox(flugaBB)) {
-    flugaCounter++
-    scene.remove(fluga);
-    console.log(flugaCounter);
+// Function to get a random x position within the track bounds
+function getRandomXPosition() {
+	return Math.random() * 14 - 7;  // Random value between -7 and 7
 }
 
+// Function to get a random z position (either 0 or -9)
+function getRandomZPosition() {
+	return Math.random() > 0.5 ? 0 : -9;  // Randomly chooses 0 or -9
+}
 
-// const isOnWater = false;
-// function isOnWater() {
-//     if (isFrogAlive) {
-        
-//     }
-// }
+// Respawn the fly at a random x and z position
+function respawnFly() {
+	fluga.position.x = getRandomXPosition();  // Assign a random x position
+	fluga.position.z = getRandomZPosition();  // Assign z=0 or z=-9 randomly
+	flugaBB.setFromObject(fluga);
+	scene.add(fluga);  // Add fly to the scene
+}
 
 // Animate function
 let lastFrameTime = 0;
+let flugaCounter = 0;
+let flugaEaten = false;
 function animate(currentTime) {
-    const deltaTime = (currentTime - lastFrameTime) / 1000; // seconds
-    lastFrameTime = currentTime;
+	const deltaTime = (currentTime - lastFrameTime) / 1000; // seconds
+	lastFrameTime = currentTime;
 
-    frogBB.copy(frog.geometry.boundingBox).applyMatrix4(frog.matrixWorld);
-    moveCars(deltaTime);
-    moveLogs(deltaTime);
+	frogBB.copy(frog.geometry.boundingBox).applyMatrix4(frog.matrixWorld);
+	moveCars(deltaTime);
+	moveLogs(deltaTime);
+
+	if (!flugaEaten && frogBB.intersectsBox(flugaBB)) {
+		flugaCounter++;
+		flugaEaten = true;
+		scene.remove(fluga);  // Remove fly from the scene
+		console.log("Fly eaten! Score:", flugaCounter);
+
+		// Respawn fly randomly
+		setTimeout(() => {
+			flugaEaten = false;  // Reset eaten status
+			respawnFly();  // Respawn fly at a new position
+	}, 6000); // Set a delay before respawn
+	}
     
-    controls.update();
-    renderer.render(scene, camera);
-    requestAnimationFrame(animate);
+	controls.update();
+	renderer.render(scene, camera);
+	requestAnimationFrame(animate);
 }
 
 // Movement controls
@@ -210,5 +227,5 @@ function onDocumentKeyDown(event) {
     else if (keyCode === 40 || keyCode === 83) frog.position.z += xSpeed; // Down
     else if (keyCode === 37 || keyCode === 65) frog.position.x -= xSpeed; // Left
     else if (keyCode === 39 || keyCode === 68) frog.position.x += xSpeed; // Right
-    else if (keyCode === 32) frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 9); // Reset position
+    else if (keyCode === 32) frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10); // Reset position
 };
