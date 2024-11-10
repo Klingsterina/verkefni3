@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ThreeMFLoader } from 'three/examples/jsm/Addons.js';
+const gameOverScreen = document.getElementById("gameOverScreen");
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 100, window.innerWidth / window.innerHeight, 0.1, 1000 );
 scene.background = new THREE.Color(0x87ceeb);
@@ -17,19 +18,17 @@ const directLight = new THREE.DirectionalLight(0xFFFFFF, 0.3, 50); //shadow
 directLight.position.set(-1, 2, 4);
 scene.add(ambientLight);
 scene.add(directLight)
-camera.position.z = 13;
-camera.position.y = 6;
 
 // Ground
 const groundGeometry = new THREE.BoxGeometry(15, 1, 21);
-const groundMaterial = new THREE.MeshPhongMaterial({ color: 0xfff8f2 });
+const groundMaterial = new THREE.MeshPhongMaterial({ color: 0x66bb6a});
 const ground = new THREE.Mesh(groundGeometry, groundMaterial);
 ground.position.set(0, -(ground.geometry.parameters.height / 2), 1);
 scene.add(ground);
 
 // Gata
 const roadGeometry = new THREE.BoxGeometry(15.02, 1, 9);
-const roadMaterial = new THREE.MeshPhongMaterial({color: 0x00ff10});
+const roadMaterial = new THREE.MeshPhongMaterial({color: 0xbebebe});
 const road = new THREE.Mesh(roadGeometry, roadMaterial);
 road.position.set(0, -(road.geometry.parameters.height / 2)+0.01, 5);
 scene.add(road);
@@ -103,6 +102,9 @@ for (let i = 0; i < carPositions.length; i++) {
 // Fall til að færa bílana á x-axis
 const mapwidth = 6
 function moveCars(deltaTime) {
+	if (isGameOver) {
+		return;
+	}
     for (let i = 0; i < cars.length; i++) {
         const car = cars[i];
         car.position.x += carSpeeds[i] * deltaTime;
@@ -117,13 +119,14 @@ function moveCars(deltaTime) {
         carBB.setFromObject(car);
 
         // Check for collision only if the frog is alive
-        if (isFrogAlive && frogBB.intersectsBox(carBB)) {
-			isFrogAlive = false; // Mark the frog as dead
-			frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10);
-			frogTargetPosition.copy(frog.position); // Reset the target position
-			console.log("Collision detected! Try again");
-			isFrogAlive = true;
-		}
+      if (isFrogAlive && frogBB.intersectsBox(carBB)) {
+				isFrogAlive = false; // Mark the frog as dead
+				// frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10);
+				// frogTargetPosition.copy(frog.position); // Reset the target position
+				console.log("Collision detected! Try again");
+				// isFrogAlive = true;
+				gameOver();
+			}
     }
 }
 
@@ -156,6 +159,9 @@ for (let i = 0; i < logPositions.length; i++) {
 
 // Function to move logs along the x-axis
 function moveLogs(deltaTime) {
+	if (isGameOver) {
+		return;
+	}
 	isOnLog = false; // Only reset once per call, not every iteration
 
 	for (let i = 0; i < logs.length; i++) {
@@ -185,9 +191,10 @@ function moveLogs(deltaTime) {
     if (!isOnLog && frogBB.intersectsBox(waterBB)) {
         isOnWater = true;
         // Reset frog's position and target position
-        frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10);
-        frogTargetPosition.copy(frog.position);
+        // frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10);
+        // frogTargetPosition.copy(frog.position);
         console.log("You fell into the water!");
+				gameOver();
     } else {
         isOnWater = false;
     }
@@ -213,7 +220,7 @@ function respawnFly() {
 
 //myndavel eltir frög
 function updateCameraPosition() {
-    const offset = new THREE.Vector3(0, 6, 13);
+    const offset = new THREE.Vector3(0, 4, 5);
     camera.position.x = frog.position.x + offset.x;
     camera.position.y = frog.position.y + offset.y;
     camera.position.z = frog.position.z + offset.z;
@@ -227,6 +234,7 @@ let flugaEaten = false;
 function animate(currentTime) {
 	const deltaTime = (currentTime - lastFrameTime) / 1000; // seconds
 	lastFrameTime = currentTime;
+	
 	moveCars(deltaTime);
 	moveLogs(deltaTime);
 
@@ -271,9 +279,16 @@ function animate(currentTime) {
 const xSpeed = 1;
 document.addEventListener("keydown", onDocumentKeyDown, false);
 function onDocumentKeyDown(event) {
+	const keyCode = event.which;
+	if (isGameOver && (keyCode === 82)) {
+		window.location.reload();
+		return; // Prevent further execution if the game is over
+	}
+	if (isGameOver) {
+		return;
+	}
     if (!isFrogAlive || isMoving) return; // Prevent movement if the frog is dead or already moving
 
-    const keyCode = event.which;
     if (keyCode === 38 || keyCode === 87) frogTargetPosition.z -= xSpeed; // Up
     else if (keyCode === 40 || keyCode === 83) frogTargetPosition.z += xSpeed; // Down
     else if (keyCode === 37 || keyCode === 65) frogTargetPosition.x -= xSpeed; // Left
@@ -282,10 +297,15 @@ function onDocumentKeyDown(event) {
         frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10); // Reset position
         frogTargetPosition.copy(frog.position);
     }
-
     isMoving = true; // Set moving flag
 };
 
 const moveSpeed = 15; // Units per second
 let frogTargetPosition = frog.position.clone();
 let isMoving = false; // Optional flag if you want to prevent mid-movement direction changes
+
+let isGameOver = false;
+function gameOver() {
+	isGameOver = true;
+  gameOverScreen.style.display = "block"; // Sýna Game Over skjáinn
+}
