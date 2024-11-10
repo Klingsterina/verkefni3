@@ -86,6 +86,7 @@ let flugaBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
 flugaBB.setFromObject(fluga); // Uncomment this line
 
 scene.add(fluga);
+respawnFly();
 
 // Frog
 const frogGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
