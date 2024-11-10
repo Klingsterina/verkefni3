@@ -103,21 +103,28 @@ for (let i = 0; i < carPositions.length; i++) {
 // Fall til að færa bílana á x-axis
 const mapwidth = 6
 function moveCars(deltaTime) {
-	for (let i = 0; i < cars.length; i++) {
-			const car = cars[i];
-			car.position.x += carSpeeds[i] * deltaTime;
+    for (let i = 0; i < cars.length; i++) {
+        const car = cars[i];
+        car.position.x += carSpeeds[i] * deltaTime;
 
-			if (car.position.x <= -mapwidth || car.position.x >= mapwidth) {
-					carSpeeds[i] *= -1;
-					car.position.x = THREE.MathUtils.clamp(car.position.x, -mapwidth, mapwidth);
-			}
+        // Check if the car is out of bounds and reverse direction
+        if (car.position.x <= -mapwidth || car.position.x >= mapwidth) {
+            carSpeeds[i] *= -1;
+            car.position.x = THREE.MathUtils.clamp(car.position.x, -mapwidth, mapwidth);
+        }
 
-			carBB.setFromObject(car);
-			if (isFrogAlive && frogBB.intersectsBox(carBB)) {
-					frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10);
-					console.log("Collision detected! Try again");
-			}
-	}
+        // Update the bounding box for the car
+        carBB.setFromObject(car);
+
+        // Check for collision only if the frog is alive
+        if (isFrogAlive && frogBB.intersectsBox(carBB)) {
+			isFrogAlive = false; // Mark the frog as dead
+			frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10);
+			frogTargetPosition.copy(frog.position); // Reset the target position
+			console.log("Collision detected! Try again");
+			isFrogAlive = true;
+		}
+    }
 }
 
 
@@ -253,7 +260,9 @@ function animate(currentTime) {
 	}, 6000); // Set a delay before respawn
 	}
 
-	frogBB.copy(frog.geometry.boundingBox).applyMatrix4(frog.matrixWorld);
+	if (isFrogAlive) {
+        frogBB.copy(frog.geometry.boundingBox).applyMatrix4(frog.matrixWorld);
+    }
 	renderer.render(scene, camera);
 	requestAnimationFrame(animate);
 }
@@ -262,7 +271,7 @@ function animate(currentTime) {
 const xSpeed = 1;
 document.addEventListener("keydown", onDocumentKeyDown, false);
 function onDocumentKeyDown(event) {
-    if (isMoving) return; // Optional: Prevent new input if already moving
+    if (!isFrogAlive || isMoving) return; // Prevent movement if the frog is dead or already moving
 
     const keyCode = event.which;
     if (keyCode === 38 || keyCode === 87) frogTargetPosition.z -= xSpeed; // Up
@@ -274,7 +283,7 @@ function onDocumentKeyDown(event) {
         frogTargetPosition.copy(frog.position);
     }
 
-    isMoving = true; // Optional: Set moving flag
+    isMoving = true; // Set moving flag
 };
 
 const moveSpeed = 15; // Units per second
