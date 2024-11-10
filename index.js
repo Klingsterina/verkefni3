@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { ThreeMFLoader } from 'three/examples/jsm/Addons.js';
+import { shininess } from 'three/webgpu';
 const gameOverScreen = document.getElementById("gameOverScreen");
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 100, window.innerWidth / window.innerHeight, 0.1, 1000 );
@@ -65,7 +66,7 @@ scene.add(fluga);
 
 // Frog
 const frogGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-const frogMaterial = new THREE.MeshPhongMaterial({ color: 0x44aa88 });
+const frogMaterial = new THREE.MeshPhongMaterial({ color: 0x44aa88, shininess: 60, specular: 0x004400});
 const frog = new THREE.Mesh(frogGeometry, frogMaterial);
 let isFrogAlive = true;
 frog.position.set(0, (ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2), 10);
@@ -82,7 +83,7 @@ const car = new THREE.Mesh(carGeometry, carMaterial);
 car.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + car.geometry.parameters.height / 2, 3);
 let carBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
 
-//teykna bíla frá 1 til 9
+//teykna bíla á z-axis frá 1 til 9
 const carPositions = [9,8,7,6,5,4,3,2,1];
 const cars = [];
 let carSpeeds = []
@@ -130,10 +131,9 @@ function moveCars(deltaTime) {
     }
 }
 
-
 // teykna logs
 const logGeometry = new THREE.BoxGeometry(3, 1, 1);
-const logMaterial = new THREE.MeshPhongMaterial({color: 0x964B00});
+const logMaterial = new THREE.MeshPhongMaterial({color: 0x964B00, shininess: 60, specular: 0x004400});
 const log = new THREE.Mesh(logGeometry, logMaterial);
 log.position.set(0, (ground.position.y + ground.geometry.parameters.height / 2 + car.geometry.parameters.height / 2)-0.7, -1);
 let logBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
