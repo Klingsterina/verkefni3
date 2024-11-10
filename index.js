@@ -8,7 +8,7 @@ scene.background = new THREE.Color(0x87ceeb);
 const renderer = new THREE.WebGLRenderer();
 const controls = new OrbitControls( camera, renderer.domElement );
 renderer.setSize( window.innerWidth, window.innerHeight );
-renderer.setAnimationLoop( animate );
+requestAnimationFrame(animate);
 document.body.appendChild( renderer.domElement );
 
 // Skilgreina ljósgjafa og bæta honum í sviðsnetið
@@ -27,14 +27,14 @@ const ground = new THREE.Mesh(groundGeometry, groundMaterial);
 ground.position.set(0, -(ground.geometry.parameters.height / 2), 1);
 scene.add(ground);
 
-//Gata
+// Gata
 const roadGeometry = new THREE.BoxGeometry(15.02, 1, 9);
 const roadMaterial = new THREE.MeshPhongMaterial({color: 0x00ff10});
 const road = new THREE.Mesh(roadGeometry, roadMaterial);
 road.position.set(0, -(road.geometry.parameters.height / 2)+0.01, 5);
 scene.add(road);
 
-//water
+// water
 const waterGeometry = new THREE.BoxGeometry(15.02, 1, 8);
 const waterMaterial = new THREE.MeshPhongMaterial({color: 0x0000ff});
 const water = new THREE.Mesh(waterGeometry, waterMaterial);
@@ -44,13 +44,24 @@ let waterBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
 waterBB.setFromObject(water);
 scene.add(water);
 
-//Fluga
-const flugaGeometry = new THREE.BoxGeometry(0.5,0.5,0.5);
-const flugaMaterial = new THREE.MeshPhongMaterial({color: 0xff00f0});
+// Fluga
+const flugaGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+const flugaMaterial = new THREE.MeshPhongMaterial({ color: 0xff00f0 });
 const fluga = new THREE.Mesh(flugaGeometry, flugaMaterial);
-fluga.position.set(3, (ground.position.y + ground.geometry.parameters.height / 2 + fluga.geometry.parameters.height / 2), -9);
+fluga.position.set(
+  3,
+  ground.position.y +
+    ground.geometry.parameters.height / 2 +
+    fluga.geometry.parameters.height / 2,
+  -9
+);
+// Compute the bounding box for the fly's geometry
+fluga.geometry.computeBoundingBox();
+
+// Initialize the fly's bounding box
 let flugaBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-// flugaBB.setFromObject(fluga);
+flugaBB.setFromObject(fluga); // Uncomment this line
+
 scene.add(fluga);
 
 // Frog
@@ -92,26 +103,33 @@ for (let i = 0; i < carPositions.length; i++) {
 // Fall til að færa bílana á x-axis
 const mapwidth = 6
 function moveCars(deltaTime) {
-	for (let i = 0; i < cars.length; i++) {
-			const car = cars[i];
-			car.position.x += carSpeeds[i] * deltaTime;
+    for (let i = 0; i < cars.length; i++) {
+        const car = cars[i];
+        car.position.x += carSpeeds[i] * deltaTime;
 
-			if (car.position.x <= -mapwidth || car.position.x >= mapwidth) {
-					carSpeeds[i] *= -1;
-					car.position.x = THREE.MathUtils.clamp(car.position.x, -mapwidth, mapwidth);
-			}
+        // Check if the car is out of bounds and reverse direction
+        if (car.position.x <= -mapwidth || car.position.x >= mapwidth) {
+            carSpeeds[i] *= -1;
+            car.position.x = THREE.MathUtils.clamp(car.position.x, -mapwidth, mapwidth);
+        }
 
-			carBB.setFromObject(car);
-			if (isFrogAlive && frogBB.intersectsBox(carBB)) {
-					frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10);
-					console.log("Collision detected! Try again");
-			}
-	}
+        // Update the bounding box for the car
+        carBB.setFromObject(car);
+
+        // Check for collision only if the frog is alive
+        if (isFrogAlive && frogBB.intersectsBox(carBB)) {
+			isFrogAlive = false; // Mark the frog as dead
+			frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10);
+			frogTargetPosition.copy(frog.position); // Reset the target position
+			console.log("Collision detected! Try again");
+			isFrogAlive = true;
+		}
+    }
 }
 
 
 // teykna logs
-const logGeometry = new THREE.BoxGeometry(3, 1, 0.9);
+const logGeometry = new THREE.BoxGeometry(3, 1, 1);
 const logMaterial = new THREE.MeshPhongMaterial({color: 0x964B00});
 const log = new THREE.Mesh(logGeometry, logMaterial);
 log.position.set(0, (ground.position.y + ground.geometry.parameters.height / 2 + car.geometry.parameters.height / 2)-0.7, -1);
@@ -142,12 +160,11 @@ function moveLogs(deltaTime) {
 
 	for (let i = 0; i < logs.length; i++) {
 			const log = logs[i];
-
 			// Move log along x-axis and clamp within bounds
 			log.position.x += logSpeeds[i] * deltaTime;
 			if (log.position.x <= -mapwidth || log.position.x >= mapwidth) {
-					logSpeeds[i] *= -1;
-					log.position.x = THREE.MathUtils.clamp(log.position.x, -mapwidth, mapwidth);
+				logSpeeds[i] *= -1;
+				log.position.x = THREE.MathUtils.clamp(log.position.x, -mapwidth, mapwidth);
 			}
 
 			// Update bounding box for the log only if necessary
@@ -155,19 +172,25 @@ function moveLogs(deltaTime) {
 
 			// Check if frog is on this log and move frog with log if true
 			if (frogBB.intersectsBox(logBB)) {
-					isOnLog = true;
-					frog.position.x += logSpeeds[i] * deltaTime;
+				isOnLog = true;
+				// Move frog with the log
+				let logMovement = logSpeeds[i] * deltaTime;
+				frog.position.x += logMovement;
+				// Adjust the target position accordingly
+				frogTargetPosition.x += logMovement;
 			}
 	}
 
 	// Water check only if the frog is not on any log
-	if (!isOnLog && frogBB.intersectsBox(waterBB)) {
-			isOnWater = true;
-			frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10);
-			console.log("You fell into the water!");
-	} else {
-			isOnWater = false;
-	}
+    if (!isOnLog && frogBB.intersectsBox(waterBB)) {
+        isOnWater = true;
+        // Reset frog's position and target position
+        frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10);
+        frogTargetPosition.copy(frog.position);
+        console.log("You fell into the water!");
+    } else {
+        isOnWater = false;
+    }
 }
 
 // Function to get a random x position within the track bounds
@@ -188,6 +211,15 @@ function respawnFly() {
 	scene.add(fluga);  // Add fly to the scene
 }
 
+//myndavel eltir frög
+function updateCameraPosition() {
+    const offset = new THREE.Vector3(0, 6, 13);
+    camera.position.x = frog.position.x + offset.x;
+    camera.position.y = frog.position.y + offset.y;
+    camera.position.z = frog.position.z + offset.z;
+    camera.lookAt(frog.position);
+}
+
 // Animate function
 let lastFrameTime = 0;
 let flugaCounter = 0;
@@ -195,10 +227,25 @@ let flugaEaten = false;
 function animate(currentTime) {
 	const deltaTime = (currentTime - lastFrameTime) / 1000; // seconds
 	lastFrameTime = currentTime;
-
-	frogBB.copy(frog.geometry.boundingBox).applyMatrix4(frog.matrixWorld);
 	moveCars(deltaTime);
 	moveLogs(deltaTime);
+
+	// Always move frog toward target position
+	let distance = frog.position.distanceTo(frogTargetPosition);
+	if (distance > 0.01) {
+		let direction = new THREE.Vector3().subVectors(frogTargetPosition, frog.position).normalize();
+		let step = moveSpeed * deltaTime;
+		if (step >= distance) {
+			frog.position.copy(frogTargetPosition);
+			isMoving = false;
+		} else {
+			frog.position.addScaledVector(direction, step);
+		}
+	} else {
+		isMoving = false;
+	}
+
+	updateCameraPosition();
 
 	if (!flugaEaten && frogBB.intersectsBox(flugaBB)) {
 		flugaCounter++;
@@ -212,8 +259,10 @@ function animate(currentTime) {
 			respawnFly();  // Respawn fly at a new position
 	}, 6000); // Set a delay before respawn
 	}
-    
-	controls.update();
+
+	if (isFrogAlive) {
+        frogBB.copy(frog.geometry.boundingBox).applyMatrix4(frog.matrixWorld);
+    }
 	renderer.render(scene, camera);
 	requestAnimationFrame(animate);
 }
@@ -222,10 +271,21 @@ function animate(currentTime) {
 const xSpeed = 1;
 document.addEventListener("keydown", onDocumentKeyDown, false);
 function onDocumentKeyDown(event) {
+    if (!isFrogAlive || isMoving) return; // Prevent movement if the frog is dead or already moving
+
     const keyCode = event.which;
-    if (keyCode === 38 || keyCode === 87) frog.position.z -= xSpeed; // Up
-    else if (keyCode === 40 || keyCode === 83) frog.position.z += xSpeed; // Down
-    else if (keyCode === 37 || keyCode === 65) frog.position.x -= xSpeed; // Left
-    else if (keyCode === 39 || keyCode === 68) frog.position.x += xSpeed; // Right
-    else if (keyCode === 32) frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10); // Reset position
+    if (keyCode === 38 || keyCode === 87) frogTargetPosition.z -= xSpeed; // Up
+    else if (keyCode === 40 || keyCode === 83) frogTargetPosition.z += xSpeed; // Down
+    else if (keyCode === 37 || keyCode === 65) frogTargetPosition.x -= xSpeed; // Left
+    else if (keyCode === 39 || keyCode === 68) frogTargetPosition.x += xSpeed; // Right
+    else if (keyCode === 32) {
+        frog.position.set(0, ground.position.y + ground.geometry.parameters.height / 2 + frog.geometry.parameters.height / 2, 10); // Reset position
+        frogTargetPosition.copy(frog.position);
+    }
+
+    isMoving = true; // Set moving flag
 };
+
+const moveSpeed = 15; // Units per second
+let frogTargetPosition = frog.position.clone();
+let isMoving = false; // Optional flag if you want to prevent mid-movement direction changes
