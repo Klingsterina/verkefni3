@@ -167,72 +167,6 @@ function moveCars(deltaTime) {
     }
 }
 
-// Turtle Geometry and Material
-const turtleGeometry = new THREE.BoxGeometry(1, 1, 1); // Turtle size
-const turtleMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00 }); // Turtle color
-let isOnTurtle = false;
-
-// Water Rows for Turtles: -3, -6, -9
-const turtleRows = [-3, -6, -8];
-
-// Array to store turtles
-let turtles = [];
-
-// Function to spawn a turtle at a random position on a specific row
-function spawnTurtle(rowIndex) {
-    const turtle = new THREE.Mesh(turtleGeometry, turtleMaterial);
-    const zPosition = turtleRows[rowIndex]; // Row positions (-3, -6, -9)
-    const xPosition = Math.random() * mapWidth * 2 - mapWidth; // Random X within bounds
-    turtle.position.set(xPosition, ground.position.y + ground.geometry.parameters.height / 2 + turtle.geometry.parameters.height / 2 - 0.7, zPosition);
-    turtles.push(turtle);
-    scene.add(turtle);
-    // After adding the turtle, update its bounding box
-    turtle.updateMatrixWorld(); // Ensure the world position is updated
-    let turtleBB = new THREE.Box3().setFromObject(turtle); // Update bounding box
-    checkCollisionWithFrog(turtleBB);
-}
-
-// Function to check for collision with the frog
-function checkCollisionWithFrog(turtleBB) {
-    // Check if the frog's bounding box intersects with the turtle's bounding box
-    if (frogBB.intersectsBox(turtleBB)) {
-        isOnTurtle = true;
-        console.log(isOnTurtle);
-    }
-}
-
-// Function to generate turtles at random positions within the rows
-function genTurtle() {
-    turtles = []; // Reset the turtles array each time
-    for (let i = 0; i < turtleRows.length; i++) {
-        console.log("spawning turtle")
-        spawnTurtle(i); // Spawn turtle
-    }
-}
-
-// Function to handle sinking logic (1% chance)
-function updateTurtles() {
-    turtles.forEach((turtle, index) => {
-        // 1% chance to sink the turtle
-        if (Math.random() < 0.001) {
-            // Sinking the turtle by removing it from the scene
-            scene.remove(turtle);
-            turtles.splice(index, 1); // Remove from array
-        }
-    });
-}
-
-// Function to periodically regenerate turtles
-setInterval(() => {
-    if (isGameOver) {
-        return;
-    }
-    genTurtle(); // Regenerate turtles at intervals (e.g., every 5 seconds)
-}, 5000); // 5 seconds
-
-
-
-
 // teykna logs
 const logGeometry = new THREE.BoxGeometry(3, 1, 1);
 const logMaterial = new THREE.MeshPhongMaterial({color: 0x964B00});
@@ -277,6 +211,20 @@ function genlog() {
 		for (let i = logs.length - 1; i >= 0; i--) {
 			const log = logs[i];
 			log.position.x += logSpeeds[i] * deltaTime;
+
+            // // 0.1% chance to make the log disappear
+            // if (Math.random() < 0.0001) {  // 0.1% chance
+            //     // Remove the log from the scene and array
+            //     scene.remove(log);
+            //     logs.splice(i, 1);
+            //     logSpeeds.splice(i, 1);
+            //     continue; // Skip the rest of the loop for this log
+            // }
+
+            // if (logs.length < lanes) {
+            //     console.log("spawning log")
+            //     spawnLog();
+            // }
 	
 			// Remove logs when they move out of the map bounds and respawn them
 			if (logSpeeds[i] > 0 && log.position.x > mapWidth + log.geometry.parameters.width / 2 ||
@@ -313,10 +261,12 @@ function genlog() {
 			}
 		}
 	}
+    
     return moveLogs;
 }
 
 const moveLogsFunction = genlog();
+
 
 // Function to get a random x position within the track bounds
 function getRandomXPosition() {
@@ -355,7 +305,6 @@ function animate(currentTime) {
 
     moveCars(deltaTime);
     moveLogsFunction(deltaTime);
-    updateTurtles(); 
     // Always move frog toward target position
     let distance = frog.position.distanceTo(frogTargetPosition);
     if (distance > 0.01) {
